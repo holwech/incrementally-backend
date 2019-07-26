@@ -1,45 +1,43 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
+using incrementally.Services;
 using Microsoft.AspNetCore.Mvc;
+using models.recording;
 
-namespace incrementally_backend.Controllers
+namespace incrementally.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api")]
     [ApiController]
     public class ValuesController : ControllerBase
     {
-        // GET api/values
+        private readonly ICosmosDbService _cosmosDbService;
+        public ValuesController(ICosmosDbService cosmosDbService)
+        {
+            _cosmosDbService = cosmosDbService;
+        }
+
         [HttpGet]
-        public ActionResult<IEnumerable<string>> Get()
+        public async Task<IEnumerable<Recording>> Get()
         {
-            return new string[] { "value1", "value2" };
+            return await _cosmosDbService.GetItemsAsync("SELECT * FROM c");
         }
 
-        // GET api/values/5
-        [HttpGet("{id}")]
-        public ActionResult<string> Get(int id)
+        [HttpGet]
+        [Route("test")]
+        public string Test()
         {
-            return "value";
+            return "test";
         }
-
-        // POST api/values
-        [HttpPost]
-        public void Post([FromBody] string value)
+        
+        [HttpGet]
+        [Route("create")]
+        public async Task<Recording> CreateAsync()
         {
-        }
-
-        // PUT api/values/5
-        [HttpPut("{id}")]
-        public void Put(int id, [FromBody] string value)
-        {
-        }
-
-        // DELETE api/values/5
-        [HttpDelete("{id}")]
-        public void Delete(int id)
-        {
+            var item = new Recording();
+            item.Id = Guid.NewGuid().ToString();
+            await _cosmosDbService.AddItemAsync(item);
+            return item;
         }
     }
 }
