@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using incrementally.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using models.recording;
 
@@ -9,6 +10,7 @@ namespace incrementally.Controllers
 {
     [Route("api")]
     [ApiController]
+    [Authorize]
     public class ValuesController : ControllerBase
     {
         private readonly ICosmosDbService _cosmosDbService;
@@ -30,14 +32,19 @@ namespace incrementally.Controllers
             return "test";
         }
         
-        [HttpGet]
+        [HttpPost]
         [Route("create")]
-        public async Task<Recording> CreateAsync()
+        public async Task<Recording> CreateAsync(RecordingData recording)
         {
             var item = new Recording();
+            item.Data = recording.Data;
             item.Id = Guid.NewGuid().ToString();
             await _cosmosDbService.AddItemAsync(item);
             return item;
         }
+    }
+
+    public class RecordingData {
+        public string Data;
     }
 }
