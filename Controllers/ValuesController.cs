@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using incrementally.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -29,7 +30,7 @@ namespace incrementally.Controllers
         [Route("test")]
         public string Test()
         {
-            return "test";
+            return User.FindFirst(ClaimTypes.NameIdentifier).Value;
         }
         
         [HttpPost]
@@ -38,6 +39,9 @@ namespace incrementally.Controllers
         {
             var item = new Recording();
             item.Data = recording.Data;
+            item.CreatedBy = User.FindFirst(ClaimTypes.NameIdentifier).Value;
+            item.GivenName = User.FindFirstValue(ClaimTypes.GivenName);
+            item.Surname = User.FindFirstValue(ClaimTypes.Surname);
             item.Id = Guid.NewGuid().ToString();
             await _cosmosDbService.AddItemAsync(item);
             return item;

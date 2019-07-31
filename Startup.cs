@@ -42,6 +42,19 @@ namespace incrementally_backend
             // OnAuthenticationFailed = AuthenticationFailed
           };
         });
+      services.AddCors(options =>
+        {
+            options.AddPolicy("AllowCors",
+            builder =>
+            {
+                builder.WithOrigins(
+                  "http://localhost:8080",
+                  "https://incrementally.xyz"
+                )
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+            });
+        });
       services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
       services.AddSingleton<ICosmosDbService>(InitializeCosmosClientInstanceAsync(Configuration.GetSection("CosmosDb")).GetAwaiter().GetResult());
     }
@@ -58,6 +71,8 @@ namespace incrementally_backend
         // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
         app.UseHsts();
       }
+
+      app.UseCors("AllowCors");
 
       app.UseAuthentication();
       app.UseHttpsRedirection();
