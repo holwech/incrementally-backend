@@ -18,14 +18,14 @@ namespace incrementally.Services
           this._container = dbClient.GetContainer(databaseName, containerName);
       }
       
-      public async Task AddItemAsync(Recording item)
+      public async Task AddItemAsync(RecordingEntry item)
       {
-          await this._container.CreateItemAsync<Recording>(item, new PartitionKey(item.Id));
+          await this._container.CreateItemAsync<RecordingEntry>(item, new PartitionKey(item.Id));
       }
 
-      public async Task<Recording> GetItemAsync(string id)
+      public async Task<RecordingEntry> GetItemAsync(string id)
       {
-          ItemResponse<Recording> response = await this._container.ReadItemAsync<Recording>(id, new PartitionKey(id));
+          ItemResponse<RecordingEntry> response = await this._container.ReadItemAsync<RecordingEntry>(id, new PartitionKey(id));
           if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
           {
               return null;
@@ -34,10 +34,10 @@ namespace incrementally.Services
           return response.Resource;
       }
 
-      public async Task<IEnumerable<Recording>> GetItemsAsync(string queryString)
+      public async Task<IEnumerable<RecordingEntry>> GetItemsAsync(string queryString)
       {
-          var query = this._container.GetItemQueryIterator<Recording>(new QueryDefinition(queryString));
-          List<Recording> results = new List<Recording>();
+          var query = this._container.GetItemQueryIterator<RecordingEntry>(new QueryDefinition(queryString));
+          List<RecordingEntry> results = new List<RecordingEntry>();
           while (query.HasMoreResults)
           {
               var response = await query.ReadNextAsync();

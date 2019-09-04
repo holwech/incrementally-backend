@@ -1,11 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using incrementally.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using models.recording;
+using SqlKata;
+using SqlKata.Compilers;
 
 namespace incrementally.Controllers
 {
@@ -15,30 +18,86 @@ namespace incrementally.Controllers
     public class ValuesController : ControllerBase
     {
         private readonly ICosmosDbService _cosmosDbService;
-        public ValuesController(ICosmosDbService cosmosDbService)
+        private readonly PostgresCompiler _compiler;
+        public ValuesController(ICosmosDbService cosmosDbService, PostgresCompiler compiler)
         {
             _cosmosDbService = cosmosDbService;
+            _compiler = compiler;
         }
 
         [HttpGet]
-        public async Task<IEnumerable<Recording>> Get()
+        [AllowAnonymous]
+        public string Get()
         {
-            return await _cosmosDbService.GetItemsAsync("SELECT * FROM c");
+            return "Server is running";
         }
 
         [HttpGet]
-        [Route("test")]
-        public string Test()
+        [Route("recording/{id?}")]
+        public async Task<IEnumerable<RecordingEntry>> Recording(string id)
         {
-            return User.FindFirst(ClaimTypes.NameIdentifier).Value;
+            _cosmosDbService.
+            var query = new SqlQuerySpec
+            {
+                QueryText = "SELECT * FROM books b WHERE (b.Author.Name = @name)", 
+                Parameters = new SqlParameterCollection() 
+                { 
+                    new SqlParameter("@name", "Herman Melville")
+                }
+            }
+            var query = new Query("c").When(
+                id != null,
+                q => q.Where("c.id", id)
+            );
+            var result =  _compiler.Compile(query);
+            return await _cosmosDbService.GetItemsAsync(result.Sql.Replace("\"c\"", "c").Replace("\".\"", "."));
         }
+
+        [HttpGet]
+        [Route("metadata/{userId?}/{id?}")]
+        public async Task<IEnumerable<RecordingEntry>> Metadata(string userId, string id)
+        {
+            var query = new Query("c")
+                .Select("c.title", "c.description", "c.createdBy", "c.givenName", "c.surname", "c.id")
+                .When(
+                    userId != null,
+                    q => q.Where("c.createdBy", userId)
+                )
+                .When(
+                    id != null,
+                    q => q.Where("c.id", id)
+                );
+            var result = _compiler.Compile(query);
+            return await _cosmosDbService.GetItemsAsync(result.Sql.Replace("\"c\"", "c"));
+            // WHERE c.CreatedBy = ""{User.FindFirst(ClaimTypes.NameIdentifier).Value}""
+        }
+
+        [HttpGet]
+        [Route("allRecordingsMetadata")]
+        public async Task<IEnumerable<RecordingEntry>> getAll()
+        {
+            return await _cosmosDbService.GetItemsAsync($@" 
+                SELECT 
+                    c.title,
+                    c.description,
+                    c.createdBy,
+                    c.givenName,
+                    c.surname,
+                    c.id
+                FROM c
+                WHERE c.CreatedBy = ""{User.FindFirst(ClaimTypes.NameIdentifier).Value}""
+            ");
+        }
+
         
         [HttpPost]
         [Route("create")]
-        public async Task<Recording> CreateAsync(RecordingData recording)
+        public async Task<RecordingEntry> CreateAsync(RecordingData recording)
         {
-            var item = new Recording();
-            item.Data = recording.Data;
+            var item = new RecordingEntry();
+            item.Recording = recording.Recording;
+            item.Title = recording.Title;
+            item.Description = recording.Description;
             item.CreatedBy = User.FindFirst(ClaimTypes.NameIdentifier).Value;
             item.GivenName = User.FindFirstValue(ClaimTypes.GivenName);
             item.Surname = User.FindFirstValue(ClaimTypes.Surname);
@@ -49,6 +108,8 @@ namespace incrementally.Controllers
     }
 
     public class RecordingData {
-        public string Data;
+        public string Recording;
+        public string Title;
+        public string Description;
     }
 }

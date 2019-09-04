@@ -10,6 +10,8 @@ using Microsoft.Azure.Cosmos.Fluent;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Logging;
+using Microsoft.IdentityModel.Tokens;
+using SqlKata.Compilers;
 
 namespace incrementally_backend
 {
@@ -18,6 +20,7 @@ namespace incrementally_backend
     public Startup(IConfiguration configuration, IHostingEnvironment env)
     {
       Configuration = configuration;
+      Env = env;
       if (env.IsDevelopment())
       {
           IdentityModelEventSource.ShowPII = true; 
@@ -25,6 +28,7 @@ namespace incrementally_backend
     }
 
     public IConfiguration Configuration { get; }
+    public IHostingEnvironment Env { get; }
 
     // This method gets called by the runtime. Use this method to add services to the container.
     public void ConfigureServices(IServiceCollection services)
@@ -35,8 +39,11 @@ namespace incrementally_backend
       })
         .AddJwtBearer(jwtOptions =>
         {
-          jwtOptions.Authority = $"https://login.microsoftonline.com/tfp/{Configuration["AzureAdB2C:Tenant"]}/{Configuration["AzureAdB2C:Policy"]}/v2.0/";
+          jwtOptions.Authority = $"https://login.microsoftonline.com/tfp/{Configuration["AzureAdB2C:Tenant"]}.onmicrosoft.com/{Configuration["AzureAdB2C:Policy"]}/v2.0/";
           jwtOptions.Audience = Configuration["AzureAdB2C:ClientId"];
+          jwtOptions.TokenValidationParameters = new TokenValidationParameters {
+            ValidIssuer = $"https://{Configuration["AzureAdB2C:Tenant"]}.b2clogin.com/{Configuration["AzureAdB2C:TenantId"]}/v2.0/"
+          };
           jwtOptions.Events = new JwtBearerEvents
           {
             // OnAuthenticationFailed = AuthenticationFailed
@@ -44,19 +51,29 @@ namespace incrementally_backend
         });
       services.AddCors(options =>
         {
-            options.AddPolicy("AllowCors",
-            builder =>
-            {
-                builder.WithOrigins(
-                  "http://localhost:8080",
-                  "https://incrementally.xyz"
-                )
-                  .AllowAnyHeader()
-                  .AllowAnyMethod();
-            });
+          options.AddPolicy("AllowCors",
+          builder =>
+          {
+            if (Env.IsDevelopment()) {
+              builder.WithOrigins(
+                "http://localhost:8080",
+                "http://localhost:8080/editor"
+              )
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+            } else {
+              builder.WithOrigins(
+                "https://incrementally.xyz",
+                "https://incrementally.xyz/editor"
+              )
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+            }
+          });
         });
       services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
-      services.AddSingleton<ICosmosDbService>(InitializeCosmosClientInstanceAsync(Configuration.GetSection("CosmosDb")).GetAwaiter().GetResult());
+      services.AddSingleton<ICosmosDbService>(InitializeCosmosClientInstanceAsync(Configuration.GetSection("CosmosDb"), Configuration).GetAwaiter().GetResult());
+      services.AddSingleton<SqlKata.Compilers.PostgresCompiler>();
     }
 
     // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -79,12 +96,13 @@ namespace incrementally_backend
       app.UseMvc();
     }
 
-    private static async Task<CosmosDbService> InitializeCosmosClientInstanceAsync(IConfigurationSection configurationSection)
+    private static async Task<CosmosDbService> InitializeCosmosClientInstanceAsync(IConfigurationSection configurationSection, IConfiguration configuration)
     {
       string databaseName = configurationSection.GetSection("DatabaseName").Value;
       string containerName = configurationSection.GetSection("ContainerName").Value;
       string account = configurationSection.GetSection("Account").Value;
-      string key = configurationSection.GetSection("Key").Value;
+      // string key = configurationSection.GetSection("Key").Value;
+      string key = configuration["CosmosDBKey"];
       CosmosClientBuilder clientBuilder = new CosmosClientBuilder(account, key);
       CosmosClient client = clientBuilder
         .WithConnectionModeDirect()
