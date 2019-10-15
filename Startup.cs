@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Collections.Generic;
+using System.Text;
 using System.Threading.Tasks;
 using incrementally.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -11,7 +12,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Logging;
 using Microsoft.IdentityModel.Tokens;
-using SqlKata.Compilers;
 
 namespace incrementally_backend
 {
@@ -72,7 +72,7 @@ namespace incrementally_backend
           });
         });
       services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
-      services.AddSingleton<ICosmosDbService>(InitializeCosmosClientInstanceAsync(Configuration.GetSection("CosmosDb"), Configuration).GetAwaiter().GetResult());
+      services.AddSingleton<CosmosDbService>(InitializeCosmosClientInstanceAsync(Configuration.GetSection("CosmosDb"), Configuration).GetAwaiter().GetResult());
       services.AddSingleton<SqlKata.Compilers.PostgresCompiler>();
     }
 
@@ -99,7 +99,8 @@ namespace incrementally_backend
     private static async Task<CosmosDbService> InitializeCosmosClientInstanceAsync(IConfigurationSection configurationSection, IConfiguration configuration)
     {
       string databaseName = configurationSection.GetSection("DatabaseName").Value;
-      string containerName = configurationSection.GetSection("ContainerName").Value;
+      var containerNames = new List<string>();
+      configurationSection.GetSection("ContainerNames").Bind(containerNames);
       string account = configurationSection.GetSection("Account").Value;
       // string key = configurationSection.GetSection("Key").Value;
       string key = configuration["CosmosDBKey"];
@@ -107,9 +108,12 @@ namespace incrementally_backend
       CosmosClient client = clientBuilder
         .WithConnectionModeDirect()
         .Build();
-      CosmosDbService cosmosDbService = new CosmosDbService(client, databaseName, containerName);
-      Database database = await client.CreateDatabaseIfNotExistsAsync(databaseName);
-      await database.CreateContainerIfNotExistsAsync(containerName, "/id");
+      CosmosDbService cosmosDbService = new CosmosDbService(client, databaseName, containerNames);
+      var database = await client.CreateDatabaseIfNotExistsAsync(databaseName);
+      foreach (var containerName in containerNames)
+      {
+        await database.Database.CreateContainerIfNotExistsAsync(containerName, "/id");
+      }
 
       return cosmosDbService;
     }

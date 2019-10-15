@@ -1,10 +1,14 @@
+using System;
 using Newtonsoft.Json;
 
-namespace models.recording
+namespace Database.Models
 {
-  public class RecordingEntry {
+  public class RecordingMetadata {
     [JsonProperty(PropertyName = "createdBy")]
     public string CreatedBy { get; set; }
+
+    [JsonProperty(PropertyName = "createdAt")]
+    public DateTimeOffset CreatedAt { get; set; }
 
     [JsonProperty(PropertyName = "givenName")]
     public string GivenName { get; set; }
@@ -20,8 +24,5 @@ namespace models.recording
 
     [JsonProperty(PropertyName = "description")]
     public string Description { get; set; }
-
-    [JsonProperty(PropertyName = "recording")]
-    public string Recording { get; set; }
   }
 }
