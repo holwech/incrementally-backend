@@ -1,13 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Database.Models;
 using incrementally.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SqlKata;
 using SqlKata.Compilers;
 
 namespace incrementally.Controllers
@@ -40,6 +38,7 @@ namespace incrementally.Controllers
     }
 
     [HttpGet]
+    [AllowAnonymous]
     [Route("metadata/{userId?}/{id?}")]
     public async Task<IEnumerable<RecordingMetadata>> Metadata(string userId, string id)
     {

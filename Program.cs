@@ -13,31 +13,31 @@ using Microsoft.Extensions.Logging;
 
 namespace incrementally_backend
 {
-public class Program
-{
-    public static void Main(string[] args)
+    public class Program
     {
-        BuildWebHost(args).Run();
-    }
+        public static void Main(string[] args)
+        {
+            BuildWebHost(args).Run();
+        }
 
-    public static IWebHost BuildWebHost(string[] args) =>
+        public static IWebHost BuildWebHost(string[] args) =>
         WebHost.CreateDefaultBuilder(args)
-            .ConfigureAppConfiguration((ctx, builder) =>
+        .ConfigureAppConfiguration((ctx, builder) =>
+        {
+            var keyVaultEndpoint = GetKeyVaultEndpoint();
+            if (!string.IsNullOrEmpty(keyVaultEndpoint))
             {
-                var keyVaultEndpoint = GetKeyVaultEndpoint();
-                if (!string.IsNullOrEmpty(keyVaultEndpoint))
-                {
-                    var azureServiceTokenProvider = new AzureServiceTokenProvider();
-                    var keyVaultClient = new KeyVaultClient(
-                        new KeyVaultClient.AuthenticationCallback(
-                            azureServiceTokenProvider.KeyVaultTokenCallback));
-                    builder.AddAzureKeyVault(
-                        keyVaultEndpoint, keyVaultClient, new DefaultKeyVaultSecretManager());
-                }
+                var azureServiceTokenProvider = new AzureServiceTokenProvider();
+                var keyVaultClient = new KeyVaultClient(
+                    new KeyVaultClient.AuthenticationCallback(azureServiceTokenProvider.KeyVaultTokenCallback));
+                builder
+                    .AddAzureKeyVault(keyVaultEndpoint, keyVaultClient, new DefaultKeyVaultSecretManager())
+                    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
             }
-        ).UseStartup<Startup>()
-            .Build();
+        })
+        .UseStartup<Startup>()
+        .Build();
 
-    private static string GetKeyVaultEndpoint() => "https://incrementally.vault.azure.net";
- }
+        private static string GetKeyVaultEndpoint() => "https://incrementally.vault.azure.net";
+    }
 }
