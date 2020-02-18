@@ -39,10 +39,18 @@ namespace incrementally.Controllers
 
     [HttpGet]
     [AllowAnonymous]
-    [Route("metadata/{userId?}/{id?}")]
-    public async Task<IEnumerable<RecordingMetadata>> Metadata(string userId, string id)
+    [Route("metadata/{id}")]
+    public async Task<IEnumerable<RecordingMetadata>> SingleMetadata(string id)
     {
-      return await _cosmosDbService.GetRecordingMetadata(userId, id);
+      return await _cosmosDbService.GetRecordingMetadata(id);
+    }
+
+    [HttpGet]
+    [AllowAnonymous]
+    [Route("metadata")]
+    public async Task<IEnumerable<RecordingMetadata>> Metadata()
+    {
+      return await _cosmosDbService.GetTopRecordingMetadata();
     }
 
     [HttpGet]
@@ -85,8 +93,8 @@ namespace incrementally.Controllers
   }
 
   public class UserRecordingInput {
-    public string Recording;
-    public string Title;
-    public string Description;
+    public string Recording { get; set; }
+    public string Title { get; set; }
+    public string Description { get; set; }
   }
 }
