@@ -1,19 +1,18 @@
-FROM microsoft/dotnet:2.2-aspnetcore-runtime AS base
+FROM mcr.microsoft.com/dotnet/core/sdk:3.1 AS build
+WORKDIR /source
+
+# copy csproj and restore as distinct layers
+COPY *.sln .
+COPY incrementally-backend/*.csproj ./incrementally-backend/
+RUN dotnet restore
+
+# copy everything else and build app
+COPY incrementally-backend/. ./incrementally-backend/
+WORKDIR /source/incrementally-backend
+RUN dotnet publish -c release -o /app --no-restore
+
+# final stage/image
+FROM mcr.microsoft.com/dotnet/core/aspnet:3.1
 WORKDIR /app
-EXPOSE 5001
-
-FROM microsoft/dotnet:2.2-sdk AS build
-WORKDIR /src
-COPY ["incrementally-backend.csproj", "./"]
-RUN dotnet restore "./incrementally-backend.csproj"
-COPY . .
-WORKDIR "/src/."
-RUN dotnet build "incrementally-backend.csproj" -c Release -o /app
-
-FROM build AS publish
-RUN dotnet publish "incrementally-backend.csproj" -c Release -o /app
-
-FROM base AS final
-WORKDIR /app
-COPY --from=publish /app .
+COPY --from=build /app ./
 ENTRYPOINT ["dotnet", "incrementally-backend.dll"]
