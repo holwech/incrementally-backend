@@ -11,7 +11,7 @@ resources:
 variables:
   # Container registry service connection established during pipeline creation
   dockerRegistryServiceConnection: '8749995d-f428-4f49-87e5-d121acc94ec1'
-  imageRepository: 'incrementallybackend'
+  imageRepository: 'incrementally-backend'
   containerRegistry: 'incrementally.azurecr.io'
   dockerfilePath: '$(Build.SourcesDirectory)/Dockerfile'
   tag: '$(Build.BuildId)'
@@ -37,3 +37,4 @@ stages:
         containerRegistry: $(dockerRegistryServiceConnection)
         tags: |
           $(tag)
+          latest
