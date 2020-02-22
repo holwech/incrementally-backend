@@ -3,12 +3,11 @@ WORKDIR /source
 
 # copy csproj and restore as distinct layers
 COPY *.sln .
-COPY incrementally-backend/*.csproj ./incrementally-backend/
+COPY *.csproj .
 RUN dotnet restore
 
 # copy everything else and build app
-COPY incrementally-backend/. ./incrementally-backend/
-WORKDIR /source/incrementally-backend
+COPY . .
 RUN dotnet publish -c release -o /app --no-restore
 
 # final stage/image
