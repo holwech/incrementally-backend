@@ -1,6 +1,5 @@
 FROM mcr.microsoft.com/dotnet/core/sdk:3.1 AS build
 WORKDIR /source
-EXPOSE 5001
 
 # copy csproj and restore as distinct layers
 COPY *.sln .
@@ -15,4 +14,5 @@ RUN dotnet publish -c release -o /app --no-restore
 FROM mcr.microsoft.com/dotnet/core/aspnet:3.1
 WORKDIR /app
 COPY --from=build /app ./
+EXPOSE 5001
 ENTRYPOINT ["dotnet", "incrementally-backend.dll"]

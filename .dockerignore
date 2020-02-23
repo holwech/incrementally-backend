@@ -6,8 +6,13 @@ docker-compose*
 .git
 .gitignore
 .env
-*/bin
-*/obj
 README.md
 LICENSE
 .vscode
+**/bin
+**/obj
+**/out
+**/.vscode
+**/.vs
+.dotnet
+.Microsoft.DotNet.ImageBuilder
