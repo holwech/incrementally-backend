@@ -31,6 +31,7 @@ namespace incrementally.Controllers
     }
 
     [HttpGet]
+    [AllowAnonymous]
     [Route("recording/{id?}")]
     public async Task<IEnumerable<RecordingEntry>> Recording(string id)
     {
