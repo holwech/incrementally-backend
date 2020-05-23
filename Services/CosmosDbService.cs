@@ -59,7 +59,7 @@ namespace incrementally.Services
 
         public async Task<IEnumerable<RecordingEntry>> GetItemsAsync(string queryString)
         {
-            var query = this._containers["recordings"].GetItemQueryIterator<RecordingEntry>(new QueryDefinition(queryString));
+            var query = _containers["recordings"].GetItemQueryIterator<RecordingEntry>(new QueryDefinition(queryString));
             List<RecordingEntry> results = new List<RecordingEntry>();
             while (query.HasMoreResults)
             {
@@ -81,6 +81,12 @@ namespace incrementally.Services
                 results.AddRange(await resultSetIterator.ReadNextAsync());
             }
             return results;
+        }
+
+        public async Task DeleteRecording(string id)
+        {
+            await _containers["recordings"].DeleteItemAsync<RecordingEntry>(id, new PartitionKey(id));
+            await _containers["recording_metadata"].DeleteItemAsync<RecordingMetadata>(id, new PartitionKey(id));
         }
 
         public async Task<IEnumerable<RecordingMetadata>> GetRecordingMetadata(string id)
