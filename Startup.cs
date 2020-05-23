@@ -59,8 +59,7 @@ namespace incrementally_backend
                         if (Env.IsDevelopment())
                         {
                             builder.WithOrigins(
-                                "http://localhost:8080",
-                                "http://localhost:8080/editor"
+                                "http://*.localhost:8080"
                             )
                             .AllowAnyHeader()
                             .AllowAnyMethod();
@@ -68,12 +67,12 @@ namespace incrementally_backend
                         else
                         {
                             builder.WithOrigins(
-                                "https://incrementally.xyz",
-                                "https://incrementally.xyz/editor"
+                                "https://*.incrementally.xyz"
                             )
                             .AllowAnyHeader()
                             .AllowAnyMethod();
                         }
+                        builder.SetIsOriginAllowedToAllowWildcardSubdomains();
                     });
             });
             services.AddSwaggerGen(c =>
