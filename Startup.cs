@@ -58,21 +58,20 @@ namespace incrementally_backend
                     {
                         if (Env.IsDevelopment())
                         {
-                            builder.WithOrigins(
-                                "http://*.localhost:8080"
-                            )
+                            builder
                             .AllowAnyHeader()
-                            .AllowAnyMethod();
+                            .AllowAnyMethod()
+                            .AllowAnyOrigin();
                         }
                         else
                         {
                             builder.WithOrigins(
-                                "https://*.incrementally.xyz"
+                                "https://incrementally.xyz",
+                                "https://www.incrementally.xyz"
                             )
                             .AllowAnyHeader()
                             .AllowAnyMethod();
                         }
-                        builder.SetIsOriginAllowedToAllowWildcardSubdomains();
                     });
             });
             services.AddSwaggerGen(c =>
