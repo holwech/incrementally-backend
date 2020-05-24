@@ -58,18 +58,16 @@ namespace incrementally_backend
                     {
                         if (Env.IsDevelopment())
                         {
-                            builder.WithOrigins(
-                                "http://localhost:8080",
-                                "http://localhost:8080/editor"
-                            )
+                            builder
                             .AllowAnyHeader()
-                            .AllowAnyMethod();
+                            .AllowAnyMethod()
+                            .AllowAnyOrigin();
                         }
                         else
                         {
                             builder.WithOrigins(
                                 "https://incrementally.xyz",
-                                "https://incrementally.xyz/editor"
+                                "https://www.incrementally.xyz"
                             )
                             .AllowAnyHeader()
                             .AllowAnyMethod();
