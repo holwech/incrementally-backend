@@ -119,7 +119,6 @@ namespace incrementally_backend
             var containerNames = new List<string>();
             configurationSection.GetSection("ContainerNames").Bind(containerNames);
             string account = configurationSection.GetSection("Account").Value;
-            // string key = configurationSection.GetSection("Key").Value;
             string key = configuration["CosmosDBKey"];
             CosmosClientBuilder clientBuilder = new CosmosClientBuilder(account, key);
             CosmosClient client = clientBuilder

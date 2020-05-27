@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <RootNamespace>incrementally_backend</RootNamespace>
+    <UserSecretsId>96e2f655-d779-41ac-b902-349ea9984dcd</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

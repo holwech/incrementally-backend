@@ -32,7 +32,14 @@ namespace incrementally_backend
                     new KeyVaultClient.AuthenticationCallback(azureServiceTokenProvider.KeyVaultTokenCallback));
                 builder
                     .AddAzureKeyVault(keyVaultEndpoint, keyVaultClient, new DefaultKeyVaultSecretManager())
-                    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
+                    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+                    .AddJsonFile($"appsettings.Development.json", optional: true, reloadOnChange: true);
+                if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development")
+                {
+                    // If this is throwing an exception it's probably because you need to create secrets.json.
+                    // See README for more info.
+                    builder.AddUserSecrets<Program>();
+                }
             }
         })
         .UseStartup<Startup>()
