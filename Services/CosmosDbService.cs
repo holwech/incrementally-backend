@@ -3,23 +3,30 @@ using System.Linq;
 using System.Threading.Tasks;
 using Database.Models;
 using Microsoft.Azure.Cosmos;
-using Microsoft.Azure.Cosmos.Linq;
+using Microsoft.Azure.Cosmos.Fluent;
 
 namespace incrementally.Services
 {
-    public class CosmosDbService
+    public class CosmosDbService : IDatabaseConnector
     {
         private Dictionary<string, Container> _containers;
+        private CosmosClient _client;
 
-        public CosmosDbService(
-          CosmosClient dbClient,
-          string databaseName,
-          List<string> containerNames)
+        public async Task InitializeAsync(string databaseName, List<string> containerNames, string account, string key)
         {
+            CosmosClientBuilder clientBuilder = new CosmosClientBuilder(account, key);
+            _client = clientBuilder
+              .WithConnectionModeDirect()
+              .Build();
             _containers = new Dictionary<string, Container>();
             foreach (var containerName in containerNames)
             {
-                _containers.Add(containerName, dbClient.GetContainer(databaseName, containerName));
+                _containers.Add(containerName, _client.GetContainer(databaseName, containerName));
+            }
+            var database = await _client.CreateDatabaseIfNotExistsAsync(databaseName);
+            foreach (var containerName in containerNames)
+            {
+                await database.Database.CreateContainerIfNotExistsAsync(containerName, "/id");
             }
         }
 
@@ -95,28 +102,5 @@ namespace incrementally.Services
             }
             return results;
         }
-
-        /*
-    public async Task<IEnumerable<RecordingMetadata>> GetRecordingMetadata(string userId, string id)
-    {
-      var query = new QueryDefinition("SELECT * FROM c");
-      if (userId != null) {
-        query = new QueryDefinition("SELECT * FROM c WHERE c.createdBy = @userId")
-          .WithParameter("@userId", userId);
-      }
-      if (id != null) {
-        query = new QueryDefinition("SELECT * FROM c WHERE c.createdBy = @userId AND c.id = @id")
-          .WithParameter("@userId", userId)
-          .WithParameter("@id", id);
-      }
-      var resultSetIterator = _containers["recording_metadata"].GetItemQueryIterator<RecordingMetadata>(query);
-      var results = new List<RecordingMetadata>();
-      while (resultSetIterator.HasMoreResults)
-      {
-        results.AddRange((await resultSetIterator.ReadNextAsync()));
-      }
-      return results;
-    }
-    */
     }
 }

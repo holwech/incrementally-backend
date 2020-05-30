@@ -2,6 +2,7 @@
 using System.Text;
 using System.Threading.Tasks;
 using incrementally.Services;
+using incrementally_backend.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -79,7 +80,19 @@ namespace incrementally_backend
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "Incrementally", Version = "v1" });
             });
             services.AddMvc();
-            services.AddSingleton(InitializeCosmosClientInstanceAsync(Configuration.GetSection("CosmosDb"), Configuration).GetAwaiter().GetResult());
+
+            IDatabaseConnector databaseConnector = new CosmosDbService();
+            var dbConfiguration = Configuration.GetSection("CosmosDb");
+            databaseConnector.InitializeAsync(
+                dbConfiguration.GetValue<string>("DatabaseName"),
+                dbConfiguration.GetValue<List<string>>("ContainerNames"),
+                dbConfiguration.GetValue<string>("Account"),
+                Configuration.GetValue<string>("CosmosDBKey")
+            );
+            IStorageConnector storageConnector = new AzureBlobStorageConnector();
+            storageConnector.Initialize(Configuration.GetValue<string>("StorageConnectionString"), new List<string> { "recordings" });
+            services.AddSingleton(databaseConnector);
+            services.AddSingleton(storageConnector);
             services.AddSingleton<SqlKata.Compilers.PostgresCompiler>();
         }
 
@@ -111,36 +124,6 @@ namespace incrementally_backend
             {
                 endpoints.MapControllers();
             });
-        }
-
-        private static async Task<CosmosDbService> InitializeCosmosClientInstanceAsync(IConfigurationSection configurationSection, IConfiguration configuration)
-        {
-            string databaseName = configurationSection.GetSection("DatabaseName").Value;
-            var containerNames = new List<string>();
-            configurationSection.GetSection("ContainerNames").Bind(containerNames);
-            string account = configurationSection.GetSection("Account").Value;
-            string key = configuration["CosmosDBKey"];
-            CosmosClientBuilder clientBuilder = new CosmosClientBuilder(account, key);
-            CosmosClient client = clientBuilder
-              .WithConnectionModeDirect()
-              .Build();
-            CosmosDbService cosmosDbService = new CosmosDbService(client, databaseName, containerNames);
-            var database = await client.CreateDatabaseIfNotExistsAsync(databaseName);
-            foreach (var containerName in containerNames)
-            {
-                await database.Database.CreateContainerIfNotExistsAsync(containerName, "/id");
-            }
-
-            return cosmosDbService;
-        }
-
-        private Task AuthenticationFailed(AuthenticationFailedContext arg)
-        {
-            // For debugging purposes only!
-            var s = $"AuthenticationFailed: {arg.Exception.Message}";
-            arg.Response.ContentLength = s.Length;
-            arg.Response.Body.Write(Encoding.UTF8.GetBytes(s), 0, s.Length);
-            return Task.FromResult(0);
         }
     }
 }
