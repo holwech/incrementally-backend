@@ -83,12 +83,14 @@ namespace incrementally_backend
 
             IDatabaseConnector databaseConnector = new CosmosDbService();
             var dbConfiguration = Configuration.GetSection("CosmosDb");
+            var containerNames = new List<string>();
+            Configuration.GetSection("CosmosDb").GetSection("ContainerNames").Bind(containerNames);
             databaseConnector.InitializeAsync(
-                dbConfiguration.GetValue<string>("DatabaseName"),
-                dbConfiguration.GetValue<List<string>>("ContainerNames"),
-                dbConfiguration.GetValue<string>("Account"),
+                Configuration.GetSection("CosmosDb").GetValue<string>("DatabaseName"),
+                containerNames,
+                Configuration.GetSection("CosmosDb").GetValue<string>("Account"),
                 Configuration.GetValue<string>("CosmosDBKey")
-            );
+            ).GetAwaiter().GetResult();
             IStorageConnector storageConnector = new AzureBlobStorageConnector();
             storageConnector.Initialize(Configuration.GetValue<string>("StorageConnectionString"), new List<string> { "recordings" });
             services.AddSingleton(databaseConnector);

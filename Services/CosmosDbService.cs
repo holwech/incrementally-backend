@@ -32,8 +32,7 @@ namespace incrementally.Services
 
         public async Task AddRecordingAsync(RecordingEntry recordingEntry, RecordingMetadata recordingMetadata)
         {
-            await _containers["recordings"].CreateItemAsync(recordingEntry, new PartitionKey(recordingEntry.Id));
-            await _containers["recording_metadata"].CreateItemAsync(recordingMetadata, new PartitionKey(recordingEntry.Id));
+            await _containers["recordings"].CreateItemAsync(recordingMetadata, new PartitionKey(recordingEntry.Id));
         }
 
         public async Task<List<RecordingEntry>> GetRecordings(string id)

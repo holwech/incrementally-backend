@@ -1,4 +1,5 @@
-﻿using Azure.Storage.Blobs;
+﻿using Azure;
+using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using System.Collections.Generic;
 using System.IO;
@@ -13,7 +14,13 @@ namespace incrementally_backend.Services
             var client = new BlobServiceClient(connectionString);
             var tasks = new List<(string, Task<BlobContainerClient>)>();
             containerNames.ForEach(containerName => tasks.Add((containerName, CreateContainer(client, containerName))));
-            tasks.ForEach(async x => _containers.Add(x.Item1, await x.Item2));
+            try
+            {
+                tasks.ForEach(x => _containers.Add(x.Item1, x.Item2.GetAwaiter().GetResult()));
+            } catch (RequestFailedException)
+            {
+                // Container already exists
+            }
         }
 
         public async Task UploadAsync(string fileName, string fileContent, string containerName)

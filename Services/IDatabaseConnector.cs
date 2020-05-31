@@ -1,9 +1,9 @@
+using Database.Models;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
 namespace incrementally.Services
 {
-    using System.Collections.Generic;
-    using System.Threading.Tasks;
-    using Database.Models;
-
     public interface IDatabaseConnector
     {
         Task InitializeAsync(string databaseName, List<string> containerNames, string account, string key);
