@@ -11,6 +11,14 @@ namespace incrementally.Services
     {
         private Dictionary<string, Container> _containers;
         private CosmosClient _client;
+        private DatabaseResponse _database;
+        private string _databaseName;
+
+        public CosmosDbService(string databaseName)
+        {
+            _databaseName = databaseName;
+            _containers = new Dictionary<string, Container>();
+        }
 
         public async Task InitializeAsync(string databaseName, List<string> containerNames, string account, string key)
         {
@@ -18,69 +26,25 @@ namespace incrementally.Services
             _client = clientBuilder
               .WithConnectionModeDirect()
               .Build();
-            _containers = new Dictionary<string, Container>();
-            foreach (var containerName in containerNames)
-            {
-                _containers.Add(containerName, _client.GetContainer(databaseName, containerName));
-            }
-            var database = await _client.CreateDatabaseIfNotExistsAsync(databaseName);
-            foreach (var containerName in containerNames)
-            {
-                await database.Database.CreateContainerIfNotExistsAsync(containerName, "/id");
-            }
+            _database = await _client.CreateDatabaseIfNotExistsAsync(databaseName);
+            containerNames.ForEach(async containerName => await CreateContainer(containerName));
         }
 
-        public async Task AddRecordingAsync(RecordingEntry recordingEntry, RecordingMetadata recordingMetadata)
+        public async Task CreateContainer(string containerName)
         {
-            await _containers["recordings"].CreateItemAsync(recordingMetadata, new PartitionKey(recordingEntry.Id));
+            _containers.Add(containerName, _client.GetContainer(_databaseName, containerName));
+            await _database.Database.CreateContainerIfNotExistsAsync(containerName, "/id");
         }
 
-        public async Task<List<RecordingEntry>> GetRecordings(string id)
+        public async Task AddRecordingAsync(RecordingMetadata recordingMetadata)
         {
-            var query = new QueryDefinition("SELECT * FROM c");
-            if (id != null)
-            {
-                query = new QueryDefinition("SELECT * FROM c WHERE c.id = @id")
-                  .WithParameter("@id", id);
-            }
-            var resultSetIterator = _containers["recordings"].GetItemQueryIterator<RecordingEntry>(query);
-            var results = new List<RecordingEntry>();
-            while (resultSetIterator.HasMoreResults)
-            {
-                results.AddRange((await resultSetIterator.ReadNextAsync()));
-            }
-            return results;
+            await _containers["recordings"].CreateItemAsync(recordingMetadata, new PartitionKey(recordingMetadata.Id));
         }
 
-        public async Task<RecordingEntry> GetItemAsync(string id)
-        {
-            ItemResponse<RecordingEntry> response = await this._containers["recordings"].ReadItemAsync<RecordingEntry>(id, new PartitionKey(id));
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-            {
-                return null;
-            }
-
-            return response.Resource;
-        }
-
-        public async Task<IEnumerable<RecordingEntry>> GetItemsAsync(string queryString)
-        {
-            var query = this._containers["recordings"].GetItemQueryIterator<RecordingEntry>(new QueryDefinition(queryString));
-            List<RecordingEntry> results = new List<RecordingEntry>();
-            while (query.HasMoreResults)
-            {
-                var response = await query.ReadNextAsync();
-
-                results.AddRange(response.ToList());
-            }
-
-            return results;
-        }
-
-        public async Task<IEnumerable<RecordingMetadata>> GetTopRecordingMetadata()
+        public async Task<IEnumerable<RecordingMetadata>> GetTopRecordings()
         {
             var query = new QueryDefinition("SELECT * FROM c ORDER BY c.createdAt DESC OFFSET 0 LIMIT 10");
-            var resultSetIterator = _containers["recording_metadata"].GetItemQueryIterator<RecordingMetadata>(query);
+            var resultSetIterator = _containers["recordings"].GetItemQueryIterator<RecordingMetadata>(query);
             var results = new List<RecordingMetadata>();
             while (resultSetIterator.HasMoreResults)
             {
@@ -89,17 +53,9 @@ namespace incrementally.Services
             return results;
         }
 
-        public async Task<IEnumerable<RecordingMetadata>> GetRecordingMetadata(string id)
+        public async Task<RecordingMetadata> GetRecording(string id)
         {
-            var query = new QueryDefinition("SELECT * FROM c WHERE c.id = @id")
-                .WithParameter("@id", id);
-            var resultSetIterator = _containers["recording_metadata"].GetItemQueryIterator<RecordingMetadata>(query);
-            var results = new List<RecordingMetadata>();
-            while (resultSetIterator.HasMoreResults)
-            {
-                results.AddRange((await resultSetIterator.ReadNextAsync()));
-            }
-            return results;
+            return await _containers["recordings"].ReadItemAsync<RecordingMetadata>(id, new PartitionKey(id));
         }
     }
 }
