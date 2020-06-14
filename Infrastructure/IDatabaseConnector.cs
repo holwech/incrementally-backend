@@ -6,10 +6,11 @@ namespace incrementally.Services
 {
     public interface IDatabaseConnector
     {
-        Task InitializeAsync(string databaseName, List<string> containerNames, string account, string key);
+        Task Initialize(List<string> containerNames, string account, string key);
         Task CreateContainer(string containerName);
-        Task AddRecordingAsync(RecordingMetadata recordingMetadata);
-        Task<IEnumerable<RecordingMetadata>> GetTopRecording();
+        Task DeleteRecording(string id);
+        Task AddRecording(RecordingMetadata recordingMetadata);
+        Task<IEnumerable<RecordingMetadata>> GetTopRecordings();
         Task<RecordingMetadata> GetRecording(string id);
     }
 }

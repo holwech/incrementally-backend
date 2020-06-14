@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 namespace incrementally_backend.Services
 {
-    interface IStorageConnector
+    public interface IStorageConnector
     {
         public void Initialize(string connectionString, List<string> containerNames);
         public Task<string> DownloadAsync(string fileName, string containerName);

@@ -81,12 +81,11 @@ namespace incrementally_backend
             });
             services.AddMvc();
 
-            IDatabaseConnector databaseConnector = new CosmosDbService();
+            IDatabaseConnector databaseConnector = new CosmosDbService(Configuration.GetSection("CosmosDb").GetValue<string>("DatabaseName"));
             var dbConfiguration = Configuration.GetSection("CosmosDb");
             var containerNames = new List<string>();
             Configuration.GetSection("CosmosDb").GetSection("ContainerNames").Bind(containerNames);
-            databaseConnector.InitializeAsync(
-                Configuration.GetSection("CosmosDb").GetValue<string>("DatabaseName"),
+            databaseConnector.Initialize(
                 containerNames,
                 Configuration.GetSection("CosmosDb").GetValue<string>("Account"),
                 Configuration.GetValue<string>("CosmosDBKey")

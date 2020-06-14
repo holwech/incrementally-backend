@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
 using Database.Models;
 using Microsoft.Azure.Cosmos;
@@ -20,13 +20,13 @@ namespace incrementally.Services
             _containers = new Dictionary<string, Container>();
         }
 
-        public async Task InitializeAsync(string databaseName, List<string> containerNames, string account, string key)
+        public async Task Initialize(List<string> containerNames, string account, string key)
         {
             CosmosClientBuilder clientBuilder = new CosmosClientBuilder(account, key);
             _client = clientBuilder
               .WithConnectionModeDirect()
               .Build();
-            _database = await _client.CreateDatabaseIfNotExistsAsync(databaseName);
+            _database = await _client.CreateDatabaseIfNotExistsAsync(_databaseName);
             containerNames.ForEach(async containerName => await CreateContainer(containerName));
         }
 
@@ -36,7 +36,12 @@ namespace incrementally.Services
             await _database.Database.CreateContainerIfNotExistsAsync(containerName, "/id");
         }
 
-        public async Task AddRecordingAsync(RecordingMetadata recordingMetadata)
+        public async Task DeleteRecording(string id)
+        {
+            await _containers["recordings"].DeleteItemAsync<RecordingMetadata>(id, new PartitionKey(id));
+        }
+
+        public async Task AddRecording(RecordingMetadata recordingMetadata)
         {
             await _containers["recordings"].CreateItemAsync(recordingMetadata, new PartitionKey(recordingMetadata.Id));
         }
@@ -55,7 +60,13 @@ namespace incrementally.Services
 
         public async Task<RecordingMetadata> GetRecording(string id)
         {
-            return await _containers["recordings"].ReadItemAsync<RecordingMetadata>(id, new PartitionKey(id));
+            try
+            {
+                return await _containers["recordings"].ReadItemAsync<RecordingMetadata>(id, new PartitionKey(id));
+            } catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+            {
+                throw new NotFoundException($"The element with ID {id} was not found");
+            }
         }
     }
 }

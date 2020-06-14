@@ -3,10 +3,9 @@ using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Database.Models;
-using incrementally.Services;
+using incrementally_backend.Application;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SqlKata.Compilers;
 
 namespace incrementally.Controllers
 {
@@ -15,10 +14,11 @@ namespace incrementally.Controllers
     [Authorize]
     public class ValuesController : ControllerBase
     {
-        private readonly IDatabaseConnector _database;
-        public ValuesController(IDatabaseConnector database)
+        private readonly RecordingHandler _recordingHandler;
+
+        public ValuesController(RecordingHandler recordingHandler)
         {
-            _database = database;
+            _recordingHandler = recordingHandler;
         }
 
         [HttpGet]
@@ -31,17 +31,17 @@ namespace incrementally.Controllers
         [HttpGet]
         [AllowAnonymous]
         [Route("recording/{id?}")]
-        public async Task<IEnumerable<RecordingEntry>> Recording(string id)
+        public async Task<RecordingEntry> Recording(string id)
         {
-            return await _database.GetRecordings(id);
+            return await _recordingHandler.GetRecording(id);
         }
 
         [HttpGet]
         [AllowAnonymous]
         [Route("metadata/{id}")]
-        public async Task<IEnumerable<RecordingMetadata>> SingleMetadata(string id)
+        public async Task<RecordingMetadata> SingleMetadata(string id)
         {
-            return await _database.GetRecordingMetadata(id);
+            return await _recordingHandler.GetMetadata(id);
         }
 
         [HttpGet]
@@ -49,24 +49,7 @@ namespace incrementally.Controllers
         [Route("metadata")]
         public async Task<IEnumerable<RecordingMetadata>> Metadata()
         {
-            return await _database.GetTopRecordingMetadata();
-        }
-
-        [HttpGet]
-        [Route("allRecordingsMetadata")]
-        public async Task<IEnumerable<RecordingEntry>> getAll()
-        {
-            return await _database.GetItemsAsync($@" 
-        SELECT 
-          c.title,
-          c.description,
-          c.createdBy,
-          c.givenName,
-          c.surname,
-          c.id
-        FROM c
-        WHERE c.CreatedBy = ""{User.FindFirst(ClaimTypes.NameIdentifier).Value}""
-      ");
+            return await _recordingHandler.GetTopMetadata();
         }
 
 
@@ -74,19 +57,16 @@ namespace incrementally.Controllers
         [Route("create")]
         public async Task<RecordingMetadata> CreateAsync(UserRecordingInput data)
         {
-            var recordingEntry = new RecordingEntry();
             var recordingMetadata = new RecordingMetadata();
             var id = Guid.NewGuid().ToString();
-            recordingEntry.Recording = data.Recording;
-            recordingEntry.Id = id;
             recordingMetadata.Title = data.Title;
             recordingMetadata.Description = data.Description;
-            recordingMetadata.CreatedBy = User.FindFirst(ClaimTypes.NameIdentifier).Value;
+            recordingMetadata.CreatedBy = User.FindFirstValue(ClaimTypes.NameIdentifier);
             recordingMetadata.GivenName = User.FindFirstValue(ClaimTypes.GivenName);
             recordingMetadata.Surname = User.FindFirstValue(ClaimTypes.Surname);
             recordingMetadata.Id = id;
             recordingMetadata.CreatedAt = DateTimeOffset.Now;
-            await _database.AddRecordingAsync(recordingEntry, recordingMetadata);
+            await _recordingHandler.Add(recordingMetadata, data.Recording);
             return recordingMetadata;
         }
     }
