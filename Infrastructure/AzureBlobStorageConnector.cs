@@ -14,12 +14,15 @@ namespace incrementally_backend.Services
             var client = new BlobServiceClient(connectionString);
             var tasks = new List<(string, Task<BlobContainerClient>)>();
             containerNames.ForEach(containerName => tasks.Add((containerName, CreateContainer(client, containerName))));
-            try
+            foreach (var task in tasks)
             {
-                tasks.ForEach(x => _containers.Add(x.Item1, x.Item2.GetAwaiter().GetResult()));
-            } catch (RequestFailedException)
-            {
-                // Container already exists
+                try
+                {
+                    _containers.Add(task.Item1, task.Item2.GetAwaiter().GetResult());
+                } catch (RequestFailedException)
+                {
+                    _containers.Add(task.Item1, client.GetBlobContainerClient(task.Item1));
+                }
             }
         }
 
@@ -37,18 +40,13 @@ namespace incrementally_backend.Services
             BlobDownloadInfo download = await blobClient.DownloadAsync();
             MemoryStream stream = new MemoryStream();
             await download.Content.CopyToAsync(stream);
-            return FromStream(stream);
+            // Could this potentially cause memory issues? Should be looked into at some point.
+            return System.Text.Encoding.UTF8.GetString(stream.ToArray());
         }
 
         private async Task<BlobContainerClient> CreateContainer(BlobServiceClient blobClient, string containerName)
         {
             return await blobClient.CreateBlobContainerAsync(containerName);
-        }
-
-        private string FromStream(MemoryStream stream)
-        {
-            StreamReader reader = new StreamReader(stream);
-            return reader.ReadToEnd();
         }
 
         private Stream ToStream(string file)

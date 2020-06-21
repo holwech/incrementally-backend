@@ -2,6 +2,7 @@
 using System.Text;
 using System.Threading.Tasks;
 using incrementally.Services;
+using incrementally_backend.Application;
 using incrementally_backend.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
@@ -94,6 +95,7 @@ namespace incrementally_backend
             storageConnector.Initialize(Configuration.GetValue<string>("StorageConnectionString"), new List<string> { "recordings" });
             services.AddSingleton(databaseConnector);
             services.AddSingleton(storageConnector);
+            services.AddSingleton<RecordingHandler>();
             services.AddSingleton<SqlKata.Compilers.PostgresCompiler>();
         }
 
