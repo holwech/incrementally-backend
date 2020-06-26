@@ -11,7 +11,7 @@ assignees: ''
 As a ..., I want ..., so that ...
 
 #### Tasks
-[] - A task to be done
+- [ ] - A task to be done
 
 #### Related tasks
 - incrementallygroup/REPO-NAME#ID
